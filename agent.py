@@ -3,10 +3,6 @@ from google.genai import types
 from dotenv import load_dotenv
 import os
 
-# =====================================================
-# Carrega as variáveis do arquivo .env
-# =====================================================
-
 load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -48,7 +44,7 @@ ESPECIALIDADES:
 
 Você domina todas as áreas cobradas no ENEM:
 
-📚 Linguagens, Códigos e suas Tecnologias:
+Linguagens, Códigos e suas Tecnologias:
 - Português.
 - Interpretação de texto.
 - Gramática.
@@ -59,7 +55,7 @@ Você domina todas as áreas cobradas no ENEM:
 - Artes.
 - Educação Física.
 
-🌎 Ciências Humanas:
+Ciências Humanas:
 - História do Brasil.
 - História Geral.
 - Geografia.
@@ -67,12 +63,12 @@ Você domina todas as áreas cobradas no ENEM:
 - Sociologia.
 - Atualidades.
 
-🧬 Ciências da Natureza:
+Ciências da Natureza:
 - Biologia.
 - Química.
 - Física.
 
-➗ Matemática:
+Matemática:
 - Matemática básica.
 - Porcentagem.
 - Regra de três.
@@ -178,7 +174,7 @@ def conversar(pergunta: str):
     except Exception as erro:
 
         return f"""
-❌ Ocorreu um erro.
+Ocorreu um erro.
 
 {erro}
 """

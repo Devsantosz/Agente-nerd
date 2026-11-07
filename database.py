@@ -4,7 +4,7 @@ from datetime import datetime
 
 BANCO = "chat.db"
 
-
+#Conectar com o banco
 def conectar():
 
     return sqlite3.connect(BANCO)
@@ -12,13 +12,12 @@ def conectar():
 
 
 # Criar tabelas
-
 def iniciar_banco():
 
-    conexao = conectar()
-    cursor = conexao.cursor()
+    conexao = conectar()    #Conectar com o banco
+    cursor = conexao.cursor()   #Permissao para mexer no banco
 
-
+    #Criancao de id, titulo da tabela e data
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS conversas (
 
@@ -59,14 +58,12 @@ def iniciar_banco():
 
 
 # Criar conversa nova
-
 def criar_conversa(titulo="Nova conversa"):
 
     conexao = conectar()
-
     cursor = conexao.cursor()
 
-
+    #Add na tabela comversas
     cursor.execute(
         """
         INSERT INTO conversas(titulo,data)
@@ -76,6 +73,8 @@ def criar_conversa(titulo="Nova conversa"):
             titulo,
             datetime.now().strftime("%d/%m/%Y %H:%M")
         )
+        #Formatar para data
+
     )
 
 
@@ -95,7 +94,6 @@ def criar_conversa(titulo="Nova conversa"):
 def listar_conversas():
 
     conexao = conectar()
-
     cursor = conexao.cursor()
 
 
@@ -107,19 +105,16 @@ def listar_conversas():
         """
     )
 
-
     resultado = cursor.fetchall()
-
+    #Retorna todas as linhas restantes
 
     conexao.close()
-
 
     return resultado
 
 
 
 # Salvar mensagem
-
 def salvar_mensagem(
         conversa_id,
         remetente,
@@ -151,9 +146,7 @@ def salvar_mensagem(
         )
     )
 
-
     conexao.commit()
-
     conexao.close()
 
 
@@ -163,7 +156,6 @@ def salvar_mensagem(
 def carregar_mensagens(conversa_id):
 
     conexao = conectar()
-
     cursor = conexao.cursor()
 
 
@@ -181,10 +173,7 @@ def carregar_mensagens(conversa_id):
 
 
     mensagens = cursor.fetchall()
-
-
     conexao.close()
-
 
     return mensagens
 
