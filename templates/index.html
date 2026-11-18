@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100d17">
+  <meta name="description" content="Seu parceiro de estudos para o ENEM. Tire dúvidas, revise conteúdos e pratique com o Pretinho Nerd.">
+  <title>Pretinho Nerd — parceiro de estudos</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" aria-label="Pretinho Nerd, início">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="brand-mark">
+        <span><strong>Pretinho Nerd</strong><small>SEU PARCEIRO DE ESTUDOS</small></span>
+      </a>
+      <button class="new-chat" id="new-chat"><span>＋</span> Nova conversa</button>
+      <div class="history-heading"><span>RECENTES</span><span class="history-count" id="history-count">0</span></div>
+      <nav class="conversation-list" id="conversation-list" aria-label="Conversas recentes"></nav>
+      <div class="sidebar-bottom">
+        <div class="profile-avatar">PN</div>
+        <div class="profile-copy"><strong>Estudante</strong><span>Foco no ENEM 2026</span></div>
+        <span class="online-dot" title="Pronto para estudar"></span>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" id="mobile-menu" aria-label="Abrir conversas">☰</button>
+        <div class="topbar-title"><span class="status-dot"></span><span id="topbar-label">Tutor de estudos</span></div>
+        <div class="topbar-right"><span class="topbar-tag">ENEM 2026</span><button class="icon-button" id="clear-chat" aria-label="Nova conversa" title="Nova conversa">＋</button></div>
+      </header>
+
+      <section class="chat-scroll" id="chat-scroll">
+        <div class="welcome" id="welcome">
+          <div class="welcome-orbit"><img src="{{ url_for('static', filename='avatar.png') }}" alt="Pretinho Nerd"></div>
+          <div class="eyebrow"><span></span> SEU TUTOR PARTICULAR</div>
+          <h1>Aprender fica mais<br><em>leve por aqui.</em></h1>
+          <p>Oi! Eu sou o Pretinho Nerd. Vamos estudar juntos? Escolha um tema ou me conte no que você está com dúvida.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Como funciona a competência 5 da redação do ENEM?"><span class="suggestion-icon pink">✎</span><span><strong>Redação nota 1000</strong><small>Entenda as competências</small></span><b>↗</b></button>
+            <button class="suggestion" data-prompt="Me explique porcentagem com um exemplo do cotidiano."><span class="suggestion-icon amber">％</span><span><strong>Matemática sem medo</strong><small>Aprenda com exemplos</small></span><b>↗</b></button>
+            <button class="suggestion" data-prompt="Crie uma questão no estilo ENEM sobre ecologia e explique a resolução."><span class="suggestion-icon green">⌁</span><span><strong>Treinar com questões</strong><small>Pratique no estilo ENEM</small></span><b>↗</b></button>
+            <button class="suggestion" data-prompt="Monte um plano de estudos semanal para o ENEM, com 2 horas por dia."><span class="suggestion-icon violet">▦</span><span><strong>Organizar meus estudos</strong><small>Monte um plano possível</small></span><b>↗</b></button>
+          </div>
+        </div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+      </section>
+
+      <footer class="composer-wrap">
+        <form class="composer" id="composer">
+          <textarea id="message-input" rows="1" maxlength="12000" placeholder="Pergunte qualquer coisa sobre seus estudos..." aria-label="Sua mensagem"></textarea>
+          <div class="composer-tools"><span>✦ &nbsp;Respostas pensadas para você</span><button class="send-button" id="send-button" type="submit" aria-label="Enviar mensagem">↑</button></div>
+        </form>
+        <div class="disclaimer">O Pretinho Nerd pode cometer erros. Confira informações importantes. <span>Feito para estudar com mais confiança ✨</span></div>
+      </footer>
+    </main>
+  </div>
+  <div class="mobile-scrim" id="mobile-scrim"></div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

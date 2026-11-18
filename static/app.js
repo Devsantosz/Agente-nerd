@@ -1,0 +1,175 @@
+const $ = (selector) => document.querySelector(selector);
+const conversationList = $('#conversation-list');
+const messagesEl = $('#messages');
+const welcome = $('#welcome');
+const chatScroll = $('#chat-scroll');
+const input = $('#message-input');
+let currentId = null;
+let busy = false;
+
+async function api(url, options = {}) {
+  const response = await fetch(url, {
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Algo deu errado. Tente novamente.');
+  return data;
+}
+
+function formatText(text) {
+  const escaped = String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  return escaped
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/^### (.*)$/gm, '<strong class="md-heading">$1</strong>')
+    .replace(/^## (.*)$/gm, '<strong class="md-heading">$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function renderMessage(sender, text, pending = false) {
+  const row = document.createElement('article');
+  row.className = `message-row ${sender === 'usuario' ? 'from-user' : 'from-agent'}`;
+  const avatar = sender === 'usuario'
+    ? '<div class="message-avatar user-avatar">EU</div>'
+    : '<div class="message-avatar agent-avatar">✦</div>';
+  row.innerHTML = `${avatar}<div class="message-body"><div class="message-name">${sender === 'usuario' ? 'Você' : 'Pretinho Nerd'}${pending ? '<span class="typing-label"> · pensando</span>' : ''}</div><div class="bubble ${pending ? 'typing' : ''}">${pending ? '<i></i><i></i><i></i>' : formatText(text)}</div></div>`;
+  messagesEl.appendChild(row);
+  chatScroll.scrollTop = chatScroll.scrollHeight;
+  return row;
+}
+
+function showChat() {
+  welcome.hidden = true;
+  messagesEl.classList.add('visible');
+  $('#topbar-label').textContent = 'Seu espaço de estudos';
+}
+
+function showWelcome() {
+  welcome.hidden = false;
+  messagesEl.innerHTML = '';
+  messagesEl.classList.remove('visible');
+  $('#topbar-label').textContent = 'Tutor de estudos';
+}
+
+async function refreshConversations() {
+  const conversations = await api('/api/conversations');
+  conversationList.innerHTML = '';
+  $('#history-count').textContent = conversations.length;
+  conversations.forEach((conversation) => {
+    const item = document.createElement('div');
+    item.className = `conversation-item ${conversation.id === currentId ? 'active' : ''}`;
+    const title = document.createElement('button');
+    title.className = 'conversation-title';
+    title.textContent = conversation.title || 'Nova conversa';
+    title.title = conversation.title || 'Nova conversa';
+    title.addEventListener('click', () => openConversation(conversation.id));
+    const remove = document.createElement('button');
+    remove.className = 'delete-conversation';
+    remove.type = 'button';
+    remove.setAttribute('aria-label', 'Excluir conversa');
+    remove.title = 'Excluir conversa';
+    remove.textContent = '×';
+    remove.addEventListener('click', () => removeConversation(conversation.id));
+    item.append(title, remove);
+    conversationList.appendChild(item);
+  });
+}
+
+async function openConversation(id) {
+  try {
+    currentId = id;
+    const history = await api(`/api/conversations/${id}/messages`);
+    showChat();
+    messagesEl.innerHTML = '';
+    if (history.length === 0) showWelcome();
+    history.forEach((message) => renderMessage(message.sender, message.text));
+    await refreshConversations();
+    closeMobileSidebar();
+  } catch (error) { toast(error.message); }
+}
+
+async function createConversation() {
+  const conversation = await api('/api/conversations', { method: 'POST', body: '{}' });
+  currentId = conversation.id;
+  showWelcome();
+  await refreshConversations();
+  closeMobileSidebar();
+  input.focus();
+}
+
+async function removeConversation(id) {
+  try {
+    await api(`/api/conversations/${id}`, { method: 'DELETE' });
+    const remaining = await api('/api/conversations');
+    if (id === currentId) {
+      if (remaining.length) await openConversation(remaining[0].id);
+      else await createConversation();
+    } else await refreshConversations();
+  } catch (error) { toast(error.message); }
+}
+
+async function sendMessage(value) {
+  const text = (value ?? input.value).trim();
+  if (!text || busy) return;
+  if (!currentId) await createConversation();
+  input.value = '';
+  input.style.height = 'auto';
+  showChat();
+  renderMessage('usuario', text);
+  const pending = renderMessage('agente', '', true);
+  busy = true;
+  $('#send-button').disabled = true;
+  try {
+    const result = await api(`/api/conversations/${currentId}/messages`, { method: 'POST', body: JSON.stringify({ message: text }) });
+    pending.remove();
+    renderMessage(result.sender, result.text);
+    await refreshConversations();
+  } catch (error) {
+    pending.remove();
+    renderMessage('agente', `Não consegui responder agora. ${error.message}`);
+    toast(error.message);
+  } finally {
+    busy = false;
+    $('#send-button').disabled = false;
+    input.focus();
+  }
+}
+
+let toastTimer;
+function toast(message) {
+  const el = $('#toast');
+  el.textContent = message;
+  el.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 3500);
+}
+
+function openMobileSidebar() {
+  $('#sidebar').classList.add('open');
+  $('#mobile-scrim').classList.add('visible');
+}
+function closeMobileSidebar() {
+  $('#sidebar').classList.remove('open');
+  $('#mobile-scrim').classList.remove('visible');
+}
+
+$('#composer').addEventListener('submit', (event) => { event.preventDefault(); sendMessage(); });
+input.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }
+});
+input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 150)}px`; });
+$('#new-chat').addEventListener('click', () => createConversation().catch((error) => toast(error.message)));
+$('#clear-chat').addEventListener('click', () => createConversation().catch((error) => toast(error.message)));
+$('#mobile-menu').addEventListener('click', openMobileSidebar);
+$('#mobile-scrim').addEventListener('click', closeMobileSidebar);
+document.querySelectorAll('.suggestion').forEach((button) => button.addEventListener('click', () => sendMessage(button.dataset.prompt)));
+
+(async function init() {
+  try {
+    const conversations = await api('/api/conversations');
+    if (conversations.length) await openConversation(conversations[0].id);
+    else await createConversation();
+  } catch (error) { toast(error.message); }
+})();

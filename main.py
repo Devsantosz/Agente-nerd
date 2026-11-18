@@ -1,10 +1,5 @@
-from database import iniciar_banco
-from interface import ChatInterface
+from web_app import app
 
 
-iniciar_banco()
-
-
-app = ChatInterface()
-
-app.mainloop()
+if __name__ == "__main__":
+    app.run(debug=True)

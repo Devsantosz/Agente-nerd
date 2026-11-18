@@ -1,11 +1,14 @@
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from pathlib import Path
+import logging
 import os
+import time
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().with_name(".env"))
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 
 if not API_KEY:
     raise ValueError(
@@ -16,13 +19,46 @@ if not API_KEY:
 # Cliente Gemini
 # =====================================================
 
-client = genai.Client(api_key=API_KEY)
+client = genai.Client(
+    api_key=API_KEY,
+    http_options=types.HttpOptions(
+        timeout=90_000,
+        retry_options=types.HttpRetryOptions(attempts=1),
+    ),
+)
 
 # =====================================================
 # Modelo
 # =====================================================
 
 MODEL = "gemini-3.6-flash"
+FALLBACK_MODEL = "gemini-3.5-flash-lite"
+
+
+def _gerar_conteudo(contents, config=None):
+    """Repete falhas temporárias e tenta um modelo reserva."""
+    modelos = [MODEL]
+    if FALLBACK_MODEL != MODEL:
+        modelos.append(FALLBACK_MODEL)
+
+    ultimo_erro = None
+    for indice, modelo in enumerate(modelos):
+        tentativas = 2 if indice == 0 else 1
+        for tentativa in range(tentativas):
+            try:
+                return client.models.generate_content(
+                    model=modelo,
+                    contents=contents,
+                    config=config,
+                )
+            except Exception as erro:
+                ultimo_erro = erro
+                if getattr(erro, "code", None) not in (429, 500, 502, 503, 504):
+                    raise
+                if tentativa + 1 < tentativas:
+                    time.sleep(1.5)
+
+    raise ultimo_erro
 
 # =====================================================
 # Prompt do sistema
@@ -125,67 +161,55 @@ Você é o Pretinho Nerd: o parceiro de estudos que ajuda o aluno a chegar prepa
 # Histórico
 # =====================================================
 
-historico = [
-    types.Content(
-        role="user",
-        parts=[
-            types.Part(text=PROMPT)
-        ]
-    )
-]
-
 # =====================================================
 # Conversa
 # =====================================================
 
-def conversar(pergunta: str):
-
-    global historico
+def conversar(pergunta: str, contexto=None):
+    """Gera uma resposta usando somente o histórico da conversa atual."""
 
     try:
+        turnos = []
+        for remetente, mensagem in (contexto or [])[-20:]:
+            role = "model" if remetente in ("agente", "model") else "user"
+            if turnos and turnos[-1][0] == role:
+                turnos[-1] = (role, f"{turnos[-1][1]}\n{mensagem}")
+            else:
+                turnos.append((role, mensagem))
 
-        historico.append(
-            types.Content(
-                role="user",
-                parts=[
-                    types.Part(text=pergunta)
-                ]
-            )
+        if turnos and turnos[-1][0] == "user":
+            turnos[-1] = ("user", f"{turnos[-1][1]}\n{pergunta}")
+        else:
+            turnos.append(("user", pergunta))
+
+        conteudos = [
+            types.Content(role=role, parts=[types.Part(text=mensagem)])
+            for role, mensagem in turnos
+        ]
+
+        resposta = _gerar_conteudo(
+            contents=conteudos,
+            config=types.GenerateContentConfig(
+                system_instruction=PROMPT,
+                max_output_tokens=2048,
+            ),
         )
 
-        resposta = client.models.generate_content(
-            model=MODEL,
-            contents=historico
-        )
-
-        texto = resposta.text
-
-        historico.append(
-            types.Content(
-                role="model",
-                parts=[
-                    types.Part(text=texto)
-                ]
-            )
-        )
-
-        return texto
+        return resposta.text or "Não consegui preparar uma resposta agora. Tente novamente."
 
     except Exception as erro:
-
-        return f"""
-Ocorreu um erro.
-
-{erro}
-"""
+        logging.getLogger(__name__).exception("Falha na chamada generate_content do Gemini")
+        detalhe = f"{type(erro).__name__}: {erro}"
+        if API_KEY:
+            detalhe = detalhe.replace(API_KEY, "[chave ocultada]")
+        raise RuntimeError(f"Falha ao consultar o Gemini — {detalhe[:350]}") from erro
     
 
 def gerar_titulo(mensagem):
 
     try:
 
-        resposta = client.models.generate_content(
-            model=MODEL,
+        resposta = _gerar_conteudo(
             contents=f"""
             Crie um título curto para uma conversa.
 

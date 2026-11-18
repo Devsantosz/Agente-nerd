@@ -1,82 +1,46 @@
-# 🤖 Pretinho Nerd - AI Study Assistant
+# Pretinho Nerd
 
-![Pretinho Nerd](assets/logo.png)
+Assistente de estudos para o ENEM, agora como site responsivo. A aplicação oferece chat com IA, histórico de conversas salvo em SQLite e sugestões para começar a estudar.
 
-## 📚 Sobre o Projeto
+## Requisitos
 
-O **Pretinho Nerd** é um chatbot inteligente desenvolvido em Python com o objetivo de auxiliar estudantes durante seus estudos, principalmente na preparação para o **ENEM 2026**.
+- Python 3.10 ou superior
+- Uma chave de API do Google Gemini
 
-O aplicativo funciona como um assistente virtual de estudos, permitindo que o usuário converse com uma inteligência artificial, tire dúvidas, revise conteúdos e organize seu aprendizado.
+## Como executar
 
-O projeto foi desenvolvido como uma aplicação desktop utilizando interface gráfica moderna, armazenamento de conversas e integração com agente de inteligência artificial.
+1. Crie e ative um ambiente virtual, se desejar.
+2. Instale as dependências:
 
----
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# 🚀 Funcionalidades
+3. Crie um arquivo `.env` na raiz do projeto com sua chave:
 
-## 💬 Chat com Inteligência Artificial
+   ```env
+   GEMINI_API_KEY=sua_chave_aqui
+   ```
 
-- Conversas com IA em tempo real
-- Respostas personalizadas para estudos
-- Explicações passo a passo
-- Auxílio em exercícios e conteúdos escolares
+4. Inicie o site:
 
+   ```bash
+   python main.py
+   ```
 
-## 🗂️ Gerenciamento de Conversas
+5. Acesse http://127.0.0.1:5000 no navegador.
 
-- Criar novas conversas
-- Salvar histórico automaticamente
-- Abrir conversas antigas
-- Excluir conversas
-- Geração automática de títulos
+O banco `chat.db` é criado automaticamente na pasta do projeto e guarda conversas e mensagens.
 
+## Estrutura
 
-## 🎨 Interface Gráfica
+- `main.py`: ponto de entrada do site
+- `web_app.py`: servidor Flask e rotas da API
+- `templates/index.html`: página principal
+- `static/`: estilos, interações e imagens
+- `agent.py`: integração com Gemini e instruções de ensino
+- `database.py`: persistência local em SQLite
 
-- Interface moderna utilizando CustomTkinter
-- Tema escuro
-- Balões de mensagens estilo aplicativos de conversa
-- Sidebar responsiva
-- Ícone personalizado do aplicativo
+## Publicação
 
-
-## ⚡ Performance
-
-- Processamento de respostas em segundo plano utilizando Threads
-- Interface continua responsiva durante a comunicação com a IA
-
----
-
-# 🛠️ Tecnologias Utilizadas
-
-## Linguagem
-
-🐍 Python
-
-
-## Interface
-
-- CustomTkinter
-- Tkinter
-
-
-## Imagens
-
-- Pillow (PIL)
-
-
-## Banco de Dados
-
-- SQLite
-
-
-## Inteligência Artificial
-
-- Agente de IA personalizado
-
-
----
-
-# 📂 Estrutura do Projeto
-
-
+Para publicar em um servidor, configure `GEMINI_API_KEY` como variável de ambiente e use um servidor WSGI, como Gunicorn, apontando para `web_app:app`. Não publique a chave no código ou no repositório.

@@ -1,8 +1,9 @@
 import sqlite3
 from datetime import datetime
+from pathlib import Path
 
 
-BANCO = "chat.db"
+BANCO = Path(__file__).resolve().parent / "chat.db"
 
 #Conectar com o banco
 def conectar():
