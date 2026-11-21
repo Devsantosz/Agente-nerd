@@ -254,6 +254,22 @@ button {
   font-size: 10px;
 }
 
+.logout-button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: #a99bb7;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.logout-button:hover {
+  border-color: rgba(240, 91, 122, 0.35);
+  color: #ff9aad;
+}
+
 .online-dot,
 .status-dot {
   width: 7px;
@@ -741,6 +757,162 @@ button {
   display: none;
 }
 
+/* =========================================================
+   9. Tela de entrada e criação de conta
+   ========================================================= */
+.auth-gate[hidden] {
+  display: none;
+}
+
+.auth-gate {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(132, 76, 190, 0.17), transparent 42%),
+    rgba(16, 13, 23, 0.97);
+  place-items: center;
+}
+
+.auth-card {
+  width: min(100%, 420px);
+  padding: 30px;
+  border: 1px solid rgba(193, 157, 226, 0.17);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #211a2c, #18141f);
+  box-shadow: 0 25px 90px rgba(0, 0, 0, 0.38);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  font: 800 15px var(--display);
+}
+
+.auth-eyebrow {
+  color: #bd92f3;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+}
+
+.auth-card h1 {
+  margin: 9px 0 7px;
+  font: 800 27px var(--display);
+  letter-spacing: -0.8px;
+}
+
+.auth-description {
+  margin: 0;
+  color: #a69caf;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin: 24px 0 18px;
+  padding: 4px;
+  border-radius: 11px;
+  background: #15111b;
+}
+
+.auth-tab {
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #a69caf;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.auth-tab.active {
+  background: #30243d;
+  color: #f4ecfc;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form label {
+  margin: 0 0 7px;
+  color: #ded6e7;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.auth-form input {
+  width: 100%;
+  height: 43px;
+  margin-bottom: 16px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: none;
+  background: #15111b;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.auth-form input:focus {
+  border-color: rgba(176, 126, 232, 0.65);
+}
+
+.auth-form input::placeholder {
+  color: #706779;
+}
+
+.password-hint {
+  margin: -10px 0 13px;
+  color: #9a91a7;
+  font-size: 10px;
+}
+
+.auth-error {
+  min-height: 18px;
+  margin-bottom: 8px;
+  color: #ff9aad;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.auth-submit {
+  height: 44px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #a66bec, #8050bf);
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auth-submit:hover {
+  filter: brightness(1.1);
+}
+
+.auth-submit:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.auth-footnote {
+  margin: 16px 0 0;
+  color: #81788b;
+  font-size: 10px;
+  text-align: center;
+}
+
 @keyframes bounce {
   to {
     transform: translateY(-4px);
@@ -761,7 +933,7 @@ button {
 }
 
 /* =========================================================
-   9. Ajustes para telas grandes
+   10. Ajustes para telas grandes
    ========================================================= */
 @media (min-width: 1250px) {
   .chat-scroll {
@@ -787,7 +959,7 @@ button {
 }
 
 /* =========================================================
-   10. Layout para tablets e celulares
+   11. Layout para tablets e celulares
    ========================================================= */
 @media (max-width: 760px) {
   .sidebar {

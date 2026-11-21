@@ -4,18 +4,97 @@ const messagesEl = $('#messages');
 const welcome = $('#welcome');
 const chatScroll = $('#chat-scroll');
 const input = $('#message-input');
+const authGate = $('#auth-gate');
+const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 let currentId = null;
 let busy = false;
+let authMode = 'login';
 
 async function api(url, options = {}) {
   const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+      ...(options.headers || {}),
+    },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Algo deu errado. Tente novamente.');
+  if (!response.ok) {
+    const error = new Error(data.error || 'Algo deu errado. Tente novamente.');
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
+
+function showAuthGate() {
+  authGate.hidden = false;
+  $('#auth-email').focus();
+}
+
+async function enterApp(account) {
+  authGate.hidden = true;
+  $('#profile-name').textContent = 'Minha conta';
+  $('#profile-email').textContent = account.email;
+  const conversations = await api('/api/conversations');
+  if (conversations.length) await openConversation(conversations[0].id);
+  else await createConversation();
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach((tab) => {
+    const active = tab.dataset.authMode === mode;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+  const registering = mode === 'register';
+  $('#auth-title').textContent = registering ? 'Crie sua conta' : 'Entre para continuar';
+  $('#auth-submit').textContent = registering ? 'Criar minha conta' : 'Entrar na minha conta';
+  $('#password-hint').hidden = !registering;
+  $('#auth-password').autocomplete = registering ? 'new-password' : 'current-password';
+  $('#auth-error').textContent = '';
+}
+
+document.querySelectorAll('.auth-tab').forEach((tab) => {
+  tab.addEventListener('click', () => setAuthMode(tab.dataset.authMode));
+});
+
+$('#auth-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const errorEl = $('#auth-error');
+  const submit = $('#auth-submit');
+  errorEl.textContent = '';
+  submit.disabled = true;
+  try {
+    const result = await api(`/api/auth/${authMode === 'register' ? 'register' : 'login'}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        email: $('#auth-email').value,
+        password: $('#auth-password').value,
+      }),
+    });
+    await enterApp(result);
+  } catch (error) {
+    errorEl.textContent = error.message;
+  } finally {
+    submit.disabled = false;
+  }
+});
+
+$('#logout-button').addEventListener('click', async () => {
+  try {
+    await api('/api/auth/logout', { method: 'POST', body: '{}' });
+    currentId = null;
+    showWelcome();
+    $('#profile-name').textContent = 'Estudante';
+    $('#profile-email').textContent = 'Foco no ENEM 2026';
+    showAuthGate();
+  } catch (error) {
+    toast(error.message);
+  }
+});
 
 function formatText(text) {
   const escaped = String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -128,6 +207,10 @@ async function sendMessage(value) {
     await refreshConversations();
   } catch (error) {
     pending.remove();
+    if (error.status === 401) {
+      showAuthGate();
+      return;
+    }
     renderMessage('agente', `Não consegui responder agora. ${error.message}`);
     toast(error.message);
   } finally {
@@ -168,8 +251,8 @@ document.querySelectorAll('.suggestion').forEach((button) => button.addEventList
 
 (async function init() {
   try {
-    const conversations = await api('/api/conversations');
-    if (conversations.length) await openConversation(conversations[0].id);
-    else await createConversation();
+    const account = await api('/api/auth/me');
+    if (account.authenticated) await enterApp(account);
+    else showAuthGate();
   } catch (error) { toast(error.message); }
 })();
