@@ -6,4 +6,3 @@ Flask-SQLAlchemy
 Flask-WTF
 Flask-Limiter
 psycopg[binary]
-gunicorn

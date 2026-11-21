@@ -7,14 +7,14 @@
   <meta name="description" content="Seu parceiro de estudos para o ENEM. Tire dúvidas, revise conteúdos e pratique com o Pretinho Nerd.">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Pretinho Nerd — parceiro de estudos</title>
-  <link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="#" aria-label="Pretinho Nerd, início">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="brand-mark">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" class="brand-mark">
         <span><strong>Pretinho Nerd</strong><small>SEU PARCEIRO DE ESTUDOS</small></span>
       </a>
       <button class="new-chat" id="new-chat"><span>＋</span> Nova conversa</button>
@@ -36,7 +36,7 @@
 
       <section class="chat-scroll" id="chat-scroll">
         <div class="welcome" id="welcome">
-          <div class="welcome-orbit"><img src="{{ url_for('static', filename='avatar.png') }}" alt="Pretinho Nerd"></div>
+          <div class="welcome-orbit"><img src="{{ url_for('static', filename='img/avatar.png') }}" alt="Pretinho Nerd"></div>
           <div class="eyebrow"><span></span> SEU TUTOR PARTICULAR</div>
           <h1>Aprender fica mais<br><em>leve por aqui.</em></h1>
           <p>Oi! Eu sou o Pretinho Nerd. Vamos estudar juntos? Escolha um tema ou me conte no que você está com dúvida.</p>
@@ -62,7 +62,7 @@
   <section class="auth-gate" id="auth-gate" aria-labelledby="auth-title" hidden>
     <div class="auth-card">
       <div class="auth-brand">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="brand-mark">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" class="brand-mark">
         <span>Pretinho Nerd</span>
       </div>
       <div class="auth-eyebrow">SEUS ESTUDOS, EM QUALQUER LUGAR</div>
@@ -86,6 +86,6 @@
   </section>
   <div class="mobile-scrim" id="mobile-scrim"></div>
   <div class="toast" id="toast" role="status"></div>
-  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </body>
 </html>

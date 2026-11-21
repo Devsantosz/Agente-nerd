@@ -30,12 +30,15 @@ from database import (
 load_dotenv(Path(__file__).resolve().with_name(".env"))
 
 app = Flask(__name__)
-production = os.getenv("RENDER") == "true" or os.getenv("APP_ENV") == "production"
+is_vercel = os.getenv("VERCEL") == "1"
+production = is_vercel or os.getenv("RENDER") == "true" or os.getenv("APP_ENV") == "production"
 secret_key = os.getenv("SECRET_KEY")
 if production and (not secret_key or len(secret_key) < 32):
     raise RuntimeError("Configure SECRET_KEY com pelo menos 32 caracteres no servidor.")
 
 database_url = os.getenv("DATABASE_URL")
+if is_vercel and not database_url:
+    raise RuntimeError("Configure DATABASE_URL para conectar o site da Vercel ao PostgreSQL.")
 if not database_url:
     sqlite_path = Path(__file__).resolve().with_name("chat.db").as_posix()
     database_url = f"sqlite:///{sqlite_path}"

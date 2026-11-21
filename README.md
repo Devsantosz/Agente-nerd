@@ -4,7 +4,7 @@ Assistente de estudos para o ENEM com contas pessoais, chat e histórico de conv
 
 ## Executar localmente
 
-Requisitos: Python 3.10 ou superior e uma chave do Google Gemini.
+Requisitos: Python 3.12 ou superior e uma chave do Google Gemini.
 
 1. Instale as dependências:
 
@@ -21,18 +21,21 @@ Requisitos: Python 3.10 ou superior e uma chave do Google Gemini.
 
 4. Acesse http://127.0.0.1:5000 e crie sua conta com e-mail e senha de pelo menos 12 caracteres.
 
-Sem `DATABASE_URL`, o projeto usa o arquivo local `chat.db`. As conversas antigas nesse SQLite são vinculadas à primeira conta criada localmente.
+Sem `DATABASE_URL`, o projeto usa o `chat.db` local. As conversas antigas nesse SQLite são vinculadas à primeira conta criada localmente.
+
+## Publicar na Vercel
+
+A Vercel detecta a aplicação Flask pelo objeto `app` exposto por `main.py`. Configure estas variáveis em **Project Settings → Environment Variables** para Production e Preview:
+
+- `DATABASE_URL`: URL externa do PostgreSQL, pois a Vercel está fora da rede privada do Render
+- `SECRET_KEY`: segredo aleatório com pelo menos 32 caracteres
+- `GEMINI_API_KEY`: chave do Google Gemini
+
+A Vercel fornece `VERCEL=1`; o app usa isso para habilitar cookies seguros e exigir o PostgreSQL. Depois de alterar as variáveis, faça um novo deploy.
 
 ## Sincronizar entre dispositivos
 
-Celular e computador precisam acessar a mesma URL publicada do site, conectada ao mesmo banco PostgreSQL. Configure no serviço de hospedagem:
-
-- `DATABASE_URL`: URL do PostgreSQL persistente
-- `SECRET_KEY`: segredo longo e aleatório, mantido igual nas reinicializações
-- `GEMINI_API_KEY`: chave do Google Gemini
-- `APP_ENV=production`: ativa o modo de produção e exige `SECRET_KEY`
-
-Use HTTPS. Em produção, os cookies de sessão são marcados como seguros automaticamente. A plataforma de hospedagem precisa manter o PostgreSQL após reinicializações; não use o `chat.db` local como armazenamento de produção.
+Celular e computador precisam acessar a mesma URL publicada, conectada ao mesmo PostgreSQL persistente. Em produção, não use o SQLite local para armazenar as conversas.
 
 ### Importar conversas antigas
 
@@ -50,12 +53,16 @@ As senhas são armazenadas como hash, o login tem limite de tentativas e as aç�
 
 ## Estrutura
 
-- `main.py`: inicializa o servidor Flask
-- `web_app.py`: site, API, autenticação e sessões
-- `database.py`: contas, conversas e mensagens em SQLite ou PostgreSQL
-- `templates/index.html`: chat e tela de entrada/criação de conta
-- `static/`: estilos, interações e imagens
-- `migrar_conversas.py`: importação manual do histórico SQLite para PostgreSQL
+- `main.py`: entrada Flask detectada pela Vercel e inicialização local
+- `web_app.py`: rotas do site, API, autenticação e sessões
+- `database.py`: modelos e persistência em SQLite/PostgreSQL
 - `agent.py`: integração com Gemini e modelo reserva
+- `migrar_conversas.py`: importação manual do histórico local
+- `templates/index.html`: página do chat e tela de conta
+- `static/css/`: estilos
+- `static/js/`: interações do chat
+- `static/img/`: imagens usadas pela interface
+- `.python-version`: versão Python selecionada para a implantação
+- `.vercelignore`: exclui segredos, banco local e arquivos de desenvolvimento do pacote
 
-Não coloque `.env` ou segredos no repositório. Em produção, configure-os nas variáveis de ambiente da plataforma.
+Não coloque `.env`, `chat.db` ou outros segredos no repositório. Configure-os como variáveis de ambiente na plataforma de hospedagem.

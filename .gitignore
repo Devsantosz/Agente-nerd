@@ -4,6 +4,10 @@ venv/
 
 # Variáveis de ambiente
 .env
+.vercel/
+chat.db
+chat.db-*
+node_modules/
 
 # Cache do Python
 __pycache__/
@@ -17,6 +21,9 @@ dist/
 # Logs
 *.log
 
+#BD
+chat.db
+
 # IDEs
 .vscode/
 .idea/
@@ -24,3 +31,4 @@ dist/
 # Sistema operacional
 Thumbs.db
 .DS_Store
+
