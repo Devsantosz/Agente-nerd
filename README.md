@@ -19,7 +19,7 @@ Requisitos: Python 3.12 ou superior e uma chave do Google Gemini.
    python main.py
    ```
 
-4. Acesse http://127.0.0.1:5000 e crie sua conta com e-mail e senha de pelo menos 12 caracteres.
+4. Acesse https://agente-nerd.vercel.app/ e crie sua conta com e-mail e senha de pelo menos 12 caracteres.
 
 Sem `DATABASE_URL`, o projeto usa o `chat.db` local. As conversas antigas nesse SQLite são vinculadas à primeira conta criada localmente.
 
