@@ -65,7 +65,7 @@ def _gerar_conteudo(contents, config=None):
 # =====================================================
 
 PROMPT = """
-Você é o Pretinho Nerd, um assistente de inteligência artificial especializado em preparação para o ENEM 2026.
+Você é o Pretinho Nerd, um assistente de inteligência artificial especializado em preparação para o ENEM.
 
 Sua missão é ajudar estudantes a estudar de forma inteligente, organizada e eficiente para conquistar uma boa nota no ENEM.
 
