@@ -4,11 +4,26 @@ const messagesEl = $('#messages');
 const welcome = $('#welcome');
 const chatScroll = $('#chat-scroll');
 const input = $('#message-input');
+const responseMode = $('#response-mode');
 const authGate = $('#auth-gate');
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 let currentId = null;
 let busy = false;
+let modeChanging = false;
+let currentMode = 'normal';
 let authMode = 'login';
+
+const modeDescriptions = {
+  lite: 'Rápido e econômico',
+  normal: 'Equilíbrio entre rapidez e detalhe',
+  high: 'Mais análise e explicação',
+};
+
+function setModeInUI(mode) {
+  currentMode = ['lite', 'normal', 'high'].includes(mode) ? mode : 'normal';
+  responseMode.value = currentMode;
+  $('#mode-description').textContent = modeDescriptions[currentMode];
+}
 
 async function api(url, options = {}) {
   const response = await fetch(url, {
@@ -137,6 +152,7 @@ async function refreshConversations() {
   conversationList.innerHTML = '';
   $('#history-count').textContent = conversations.length;
   conversations.forEach((conversation) => {
+    if (conversation.id === currentId) setModeInUI(conversation.mode);
     const item = document.createElement('div');
     item.className = `conversation-item ${conversation.id === currentId ? 'active' : ''}`;
     const title = document.createElement('button');
@@ -159,11 +175,12 @@ async function refreshConversations() {
 async function openConversation(id) {
   try {
     currentId = id;
-    const history = await api(`/api/conversations/${id}/messages`);
+    const conversation = await api(`/api/conversations/${id}/messages`);
+    setModeInUI(conversation.mode);
     showChat();
     messagesEl.innerHTML = '';
-    if (history.length === 0) showWelcome();
-    history.forEach((message) => renderMessage(message.sender, message.text));
+    if (conversation.messages.length === 0) showWelcome();
+    conversation.messages.forEach((message) => renderMessage(message.sender, message.text));
     await refreshConversations();
     closeMobileSidebar();
   } catch (error) { toast(error.message); }
@@ -172,11 +189,38 @@ async function openConversation(id) {
 async function createConversation() {
   const conversation = await api('/api/conversations', { method: 'POST', body: '{}' });
   currentId = conversation.id;
+  setModeInUI(conversation.mode);
   showWelcome();
   await refreshConversations();
   closeMobileSidebar();
   input.focus();
 }
+
+responseMode.addEventListener('change', async () => {
+  const selectedMode = responseMode.value;
+  const targetConversationId = currentId;
+  if (!currentId || busy) {
+    setModeInUI(currentMode);
+    return;
+  }
+  modeChanging = true;
+  $('#send-button').disabled = true;
+  responseMode.disabled = true;
+  try {
+    const result = await api(`/api/conversations/${targetConversationId}/mode`, {
+      method: 'POST',
+      body: JSON.stringify({ mode: selectedMode }),
+    });
+    if (currentId === targetConversationId) setModeInUI(result.mode);
+  } catch (error) {
+    if (currentId === targetConversationId) setModeInUI(currentMode);
+    toast(error.message);
+  } finally {
+    modeChanging = false;
+    $('#send-button').disabled = busy;
+    responseMode.disabled = false;
+  }
+});
 
 async function removeConversation(id) {
   try {
@@ -191,31 +235,87 @@ async function removeConversation(id) {
 
 async function sendMessage(value) {
   const text = (value ?? input.value).trim();
-  if (!text || busy) return;
+  if (!text || busy || modeChanging) return;
   if (!currentId) await createConversation();
   input.value = '';
   input.style.height = 'auto';
   showChat();
   renderMessage('usuario', text);
   const pending = renderMessage('agente', '', true);
+  let assistantText = '';
+  let ended = false;
   busy = true;
   $('#send-button').disabled = true;
+  responseMode.disabled = true;
   try {
-    const result = await api(`/api/conversations/${currentId}/messages`, { method: 'POST', body: JSON.stringify({ message: text }) });
-    pending.remove();
-    renderMessage(result.sender, result.text);
+    const response = await fetch(`/api/conversations/${currentId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ message: text, mode: currentMode }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      const error = new Error(data.error || 'Não foi possível enviar a mensagem.');
+      error.status = response.status;
+      throw error;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const event = JSON.parse(line.slice(6));
+        if (event.type === 'delta') {
+          assistantText += event.text;
+          const bubble = pending.querySelector('.bubble');
+          bubble.classList.remove('typing');
+          bubble.innerHTML = formatText(assistantText);
+          pending.querySelector('.typing-label')?.remove();
+          chatScroll.scrollTop = chatScroll.scrollHeight;
+        } else if (event.type === 'status') {
+          const label = pending.querySelector('.typing-label');
+          if (label) label.textContent = ` · ${event.text}`;
+        } else if (event.type === 'error') {
+          toast(event.error);
+        } else if (event.type === 'done') {
+          assistantText = event.text || assistantText;
+          ended = true;
+          const bubble = pending.querySelector('.bubble');
+          bubble.classList.remove('typing');
+          bubble.innerHTML = formatText(assistantText);
+          pending.querySelector('.typing-label')?.remove();
+        }
+      }
+    }
+    if (!ended && !assistantText) throw new Error('A resposta foi interrompida antes de chegar. Tente novamente.');
     await refreshConversations();
   } catch (error) {
-    pending.remove();
     if (error.status === 401) {
+      pending.remove();
       showAuthGate();
       return;
     }
-    renderMessage('agente', `Não consegui responder agora. ${error.message}`);
+    if (!assistantText) {
+      pending.remove();
+      renderMessage('agente', `Não consegui responder agora. ${error.message}`);
+    } else {
+      const bubble = pending.querySelector('.bubble');
+      bubble.classList.remove('typing');
+      bubble.innerHTML = formatText(assistantText);
+      pending.querySelector('.typing-label')?.remove();
+    }
     toast(error.message);
   } finally {
     busy = false;
     $('#send-button').disabled = false;
+    responseMode.disabled = false;
     input.focus();
   }
 }

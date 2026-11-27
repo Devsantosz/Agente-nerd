@@ -34,6 +34,7 @@ class Conversation(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.Text, nullable=True)
+    modo = db.Column(db.String(16), nullable=False, default="normal")
     data = db.Column(db.String(32), nullable=True)
     # Nullable para preservar conversas antigas e permitir vinculá-las à primeira conta local.
     user_id = db.Column(
@@ -69,18 +70,22 @@ def iniciar_banco(app):
     db.init_app(app)
     with app.app_context():
         db.create_all()
-        _adicionar_coluna_proprietario_se_necessario()
+        _adicionar_colunas_conversa_se_necessario()
 
 
-def _adicionar_coluna_proprietario_se_necessario():
+def _adicionar_colunas_conversa_se_necessario():
     tabelas = set(inspect(db.engine).get_table_names())
     if "conversas" not in tabelas:
         return
     colunas = {coluna["name"] for coluna in inspect(db.engine).get_columns("conversas")}
-    if "user_id" not in colunas:
-        with db.engine.begin() as conexao:
+    with db.engine.begin() as conexao:
+        if "user_id" not in colunas:
             conexao.execute(
                 text("ALTER TABLE conversas ADD COLUMN user_id INTEGER REFERENCES users(id)")
+            )
+        if "modo" not in colunas:
+            conexao.execute(
+                text("ALTER TABLE conversas ADD COLUMN modo VARCHAR(16) NOT NULL DEFAULT 'normal'")
             )
 
 
@@ -103,10 +108,11 @@ def buscar_usuario_por_email(email):
     return User.query.filter_by(email=email.strip().lower()).first()
 
 
-def criar_conversa(user_id, titulo="Nova conversa"):
+def criar_conversa(user_id, titulo="Nova conversa", modo="normal"):
     conversa = Conversation(
         user_id=user_id,
         titulo=titulo,
+        modo=modo,
         data=datetime.now().strftime("%d/%m/%Y %H:%M"),
     )
     db.session.add(conversa)
@@ -124,7 +130,16 @@ def listar_conversas(user_id):
         .order_by(Conversation.id.desc())
         .all()
     )
-    return [(conversa.id, conversa.titulo) for conversa in conversas]
+    return [(conversa.id, conversa.titulo, conversa.modo) for conversa in conversas]
+
+
+def atualizar_modo_conversa(user_id, conversa_id, modo):
+    conversa = obter_conversa(user_id, conversa_id)
+    if not conversa:
+        return False
+    conversa.modo = modo
+    db.session.commit()
+    return True
 
 
 def salvar_mensagem(conversa_id, remetente, mensagem):

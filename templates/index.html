@@ -53,7 +53,18 @@
       <footer class="composer-wrap">
         <form class="composer" id="composer">
           <textarea id="message-input" rows="1" maxlength="12000" placeholder="Pergunte qualquer coisa sobre seus estudos..." aria-label="Sua mensagem"></textarea>
-          <div class="composer-tools"><span>✦ &nbsp;Respostas pensadas para você</span><button class="send-button" id="send-button" type="submit" aria-label="Enviar mensagem">↑</button></div>
+          <div class="composer-tools">
+            <label class="mode-control" for="response-mode">
+              <span>Modo da IA</span>
+              <select id="response-mode" aria-describedby="mode-description">
+                <option value="lite">Lite</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+            <span class="mode-description" id="mode-description">Rápido e econômico</span>
+            <button class="send-button" id="send-button" type="submit" aria-label="Enviar mensagem">↑</button>
+          </div>
         </form>
         <div class="disclaimer">O Pretinho Nerd pode cometer erros. Confira informações importantes. <span>Feito para estudar com mais confiança ✨</span></div>
       </footer>

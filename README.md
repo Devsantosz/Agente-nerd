@@ -4,7 +4,7 @@ Assistente de estudos para o ENEM com contas pessoais, chat e histórico de conv
 
 ## Executar localmente
 
-Requisitos: Python 3.12 ou superior e uma chave do Google Gemini.
+Requisitos: Python 3.12 ou superior e uma chave do Google Gemini. Para habilitar a continuação automática quando o Gemini atingir um limite temporário, configure também uma chave do OpenRouter.
 
 1. Instale as dependências:
 
@@ -12,7 +12,7 @@ Requisitos: Python 3.12 ou superior e uma chave do Google Gemini.
    pip install -r requirements.txt
    ```
 
-2. Copie `.env.example` para `.env` e preencha `GEMINI_API_KEY`.
+2. Copie `.env.example` para `.env` e preencha `GEMINI_API_KEY`. Para ativar o provedor alternativo, preencha também `OPENROUTER_API_KEY`; os modelos reserva podem permanecer com os valores sugeridos no exemplo.
 3. Inicie o site:
 
    ```bash
@@ -30,8 +30,16 @@ A Vercel detecta a aplicação Flask pelo objeto `app` exposto por `main.py`. Co
 - `DATABASE_URL`: URL externa do PostgreSQL, pois a Vercel está fora da rede privada do Render
 - `SECRET_KEY`: segredo aleatório com pelo menos 32 caracteres
 - `GEMINI_API_KEY`: chave do Google Gemini
+- `OPENROUTER_API_KEY`: chave do OpenRouter; necessária para continuar a resposta quando o Gemini retornar erro temporário de limite ou disponibilidade
+- `OPENROUTER_MODEL`: modelo reserva do modo Normal; `openrouter/free` seleciona automaticamente um modelo gratuito disponível
+- `OPENROUTER_MODEL_LITE`: modelo reserva do modo Lite; padrão `nvidia/nemotron-3.5-lightning:free`
+- `OPENROUTER_MODEL_HIGH`: modelo reserva do modo High; padrão `nvidia/nemotron-3-ultra-550b-a55b:free`
 
 A Vercel fornece `VERCEL=1`; o app usa isso para habilitar cookies seguros e exigir o PostgreSQL. Depois de alterar as variáveis, faça um novo deploy.
+
+O chat oferece três modos por conversa: **Lite** usa raciocínio baixo, resposta curta e menos histórico; **Normal** mantém o padrão equilibrado; **High** usa raciocínio alto, mais histórico e um limite maior de saída. A escolha fica salva na conversa e acompanha a conta entre dispositivos. O seletor controla o perfil do Gemini e também escolhe o respectivo modelo reserva do OpenRouter.
+
+Se o Gemini falhar por limite ou indisponibilidade temporária, o OpenRouter recebe o histórico e o trecho já gerado para continuar. A continuação preserva o conteúdo visível, mas modelos diferentes não compartilham o estado interno de geração e podem repetir ou reformular uma frase. Os modelos gratuitos do OpenRouter têm limites próprios e disponibilidade variável; a troca automática não garante respostas ilimitadas.
 
 ## Sincronizar entre dispositivos
 
@@ -56,7 +64,7 @@ As senhas são armazenadas como hash, o login tem limite de tentativas e as aç�
 - `main.py`: entrada Flask detectada pela Vercel e inicialização local
 - `web_app.py`: rotas do site, API, autenticação e sessões
 - `database.py`: modelos e persistência em SQLite/PostgreSQL
-- `agent.py`: integração com Gemini e modelo reserva
+- `agent.py`: integração com Gemini, transmissão das respostas e continuação opcional pelo OpenRouter
 - `migrar_conversas.py`: importação manual do histórico local
 - `templates/index.html`: página do chat e tela de conta
 - `static/css/`: estilos

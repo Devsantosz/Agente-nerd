@@ -690,6 +690,41 @@ button {
   font-size: 9px;
 }
 
+.mode-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #b8acbf;
+  cursor: pointer;
+}
+
+.mode-control select {
+  min-width: 92px;
+  padding: 6px 24px 6px 9px;
+  border: 1px solid rgba(193, 157, 226, 0.22);
+  border-radius: 8px;
+  outline: none;
+  background: #211a2a;
+  color: #e8dcf4;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mode-control select:focus-visible {
+  border-color: rgba(176, 126, 232, 0.7);
+}
+
+.mode-description {
+  flex: 1;
+  margin-left: 12px;
+  color: #81788b;
+}
+
+.mode-control select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .send-button {
   width: 32px;
   height: 32px;
@@ -1074,6 +1109,10 @@ button {
 
 /* Ajustes extras para celulares estreitos */
 @media (max-width: 420px) {
+  .mode-description {
+    display: none;
+  }
+
   .suggestions {
     grid-template-columns: 1fr;
   }

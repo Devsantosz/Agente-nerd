@@ -1,10 +1,11 @@
 import os
 import re
 import secrets
+import json
 from datetime import timedelta
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -14,6 +15,7 @@ from dotenv import load_dotenv
 from database import (
     User,
     atualizar_titulo,
+    atualizar_modo_conversa,
     buscar_usuario_por_email,
     carregar_mensagens,
     criar_conversa,
@@ -144,31 +146,51 @@ def logout():
 @app.get("/api/conversations")
 @login_required
 def conversations():
-    return jsonify([{"id": id_, "title": title} for id_, title in listar_conversas(current_user.id)])
+    return jsonify([
+        {"id": id_, "title": title, "mode": mode}
+        for id_, title, mode in listar_conversas(current_user.id)
+    ])
 
 
 @app.post("/api/conversations")
 @login_required
 def new_conversation():
     conversation_id = criar_conversa(current_user.id)
-    return jsonify({"id": conversation_id, "title": "Nova conversa"}), 201
+    return jsonify({"id": conversation_id, "title": "Nova conversa", "mode": "normal"}), 201
+
+
+@app.post("/api/conversations/<int:conversation_id>/mode")
+@login_required
+def set_conversation_mode(conversation_id):
+    data = request.get_json(silent=True) or {}
+    mode = data.get("mode")
+    if not isinstance(mode, str) or mode not in {"lite", "normal", "high"}:
+        return jsonify({"error": "Escolha Lite, Normal ou High."}), 400
+    if not atualizar_modo_conversa(current_user.id, conversation_id, mode):
+        return jsonify({"error": "Conversa não encontrada."}), 404
+    return jsonify({"mode": mode})
 
 
 @app.get("/api/conversations/<int:conversation_id>/messages")
 @login_required
 def messages(conversation_id):
-    if not obter_conversa(current_user.id, conversation_id):
+    conversation = obter_conversa(current_user.id, conversation_id)
+    if not conversation:
         return jsonify({"error": "Conversa não encontrada."}), 404
-    return jsonify([
-        {"sender": sender, "text": text}
-        for sender, text in carregar_mensagens(conversation_id)
-    ])
+    return jsonify({
+        "mode": conversation.modo or "normal",
+        "messages": [
+            {"sender": sender, "text": text}
+            for sender, text in carregar_mensagens(conversation_id)
+        ],
+    })
 
 
 @app.post("/api/conversations/<int:conversation_id>/messages")
 @login_required
 def send_message(conversation_id):
-    if not obter_conversa(current_user.id, conversation_id):
+    conversation = obter_conversa(current_user.id, conversation_id)
+    if not conversation:
         return jsonify({"error": "Conversa não encontrada."}), 404
 
     data = request.get_json(silent=True) or {}
@@ -178,28 +200,41 @@ def send_message(conversation_id):
     if len(question) > 12000:
         return jsonify({"error": "A mensagem deve ter até 12.000 caracteres."}), 400
 
+    mode = data.get("mode", conversation.modo or "normal")
+    if not isinstance(mode, str) or mode not in {"lite", "normal", "high"}:
+        return jsonify({"error": "Escolha Lite, Normal ou High."}), 400
+    if mode != conversation.modo:
+        conversation.modo = mode
+        db.session.commit()
+
     history = carregar_mensagens(conversation_id)
     salvar_mensagem(conversation_id, "usuario", question)
-    try:
-        from agent import conversar, gerar_titulo
+    def eventos():
+        from agent import responder_em_partes
 
-        answer = conversar(question, history)
-    except (RuntimeError, ValueError) as error:
-        app.logger.error("Falha do assistente: %s", error)
-        return jsonify({"error": str(error)}), 503
-    except Exception:
-        app.logger.exception("Falha ao responder mensagem")
-        return jsonify({"error": "Não foi possível responder agora. Tente novamente."}), 503
+        resposta_completa = ""
+        titulo = None
+        for evento in responder_em_partes(question, history, mode):
+            if evento["type"] == "delta":
+                resposta_completa += evento["text"]
+            elif evento["type"] == "done":
+                resposta_completa = evento.get("text", resposta_completa)
+                if resposta_completa:
+                    salvar_mensagem(conversation_id, "agente", resposta_completa)
+                if not history:
+                    titulo = " ".join(question.split()[:5]) or "Nova conversa"
+                    atualizar_titulo(conversation_id, titulo)
+                evento["title"] = titulo
+            yield f"data: {json.dumps(evento, ensure_ascii=False)}\n\n"
 
-    salvar_mensagem(conversation_id, "agente", answer)
-    title = None
-    if not history:
-        try:
-            title = gerar_titulo(question)
-        except Exception:
-            title = question[:30]
-        atualizar_titulo(conversation_id, title)
-    return jsonify({"sender": "agente", "text": answer, "title": title})
+    return Response(
+        stream_with_context(eventos()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.delete("/api/conversations/<int:conversation_id>")
